@@ -1,0 +1,5 @@
+flask
+gdeltdoc
+feedparser
+opml
+dateparser

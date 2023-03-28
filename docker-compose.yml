@@ -1,0 +1,7 @@
+services:
+  summarizer:
+    build:
+      context: ./build
+    ports:
+      - 5282:5000
+    restart: unless-stopped

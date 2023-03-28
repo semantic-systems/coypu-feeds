@@ -1,7 +1,7 @@
 import os
 import fileinput
 
-directory = "awesome-rss-feeds/countries/without_category/"
+directory = "{0}/rss-feeds/countries/".format(os.getcwd())
 
 for file in os.listdir(directory):
     for line in fileinput.input(directory + str(file), inplace=True, encoding="utf8"):

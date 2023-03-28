@@ -1,3 +1,5 @@
+import os
+
 import pytz
 from gdeltdoc import GdeltDoc, Filters
 import feedparser
@@ -12,15 +14,20 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-file_dir_countries = "awesome-rss-feeds/countries/without_category/"
+file_dir_countries = "{0}/rss-feeds/countries/".format(os.getcwd())
 country_files = [f.replace(".opml", "") for f in listdir(file_dir_countries) if isfile(join(file_dir_countries, f))]
 SOURCES = ["RSS", "GDELT"]
 DEFAULT_LANGUAGE = "English (United States) - en-us"
 DEFAULT_COUNTRY = "Germany"
 DELAULT_TRIME_FRAME = "1d"
+REQUEST_KEY = '82EWBRX6EG3YFVZY'
 
-@app.route('/')
+
+@app.route('/', methods=['POST', 'GET'])
 def get_feed():
+    if 'key' not in request.form or request.form.get('key') != REQUEST_KEY:
+        return json.dumps({'error': 'no valid API key'}, indent=2), 401
+
     keywords = request.args.get('keywords')
     domains = request.args.get('domains')
     time_frame = request.args.get('time_frame')
@@ -29,13 +36,13 @@ def get_feed():
     language = request.args.get('language')
     countries = request.args.get('countries')
 
-    #Setting of default values
+    # Setting of default values
     language = language if language else DEFAULT_LANGUAGE
     countries = countries if countries else DEFAULT_COUNTRY
     time_frame = time_frame if time_frame else DELAULT_TRIME_FRAME
 
-    if keywords == "":
-        return "Error: at least a keyword is required."
+    if not keywords:
+        return json.dumps({'error': 'Missing keywords for the search'}, indent=2), 400
 
     language_rss = language.split(" - ")[1] if language != "" else language
     language_gdelt = language.split(" - ")[0].split(" (")[0]
@@ -45,7 +52,7 @@ def get_feed():
 
     for index, country in enumerate(countries):
 
-        #Checking the number of articles limit
+        # Checking the number of articles limit
         if number_articles > 0:
             number_sources = len(SOURCES)
             if len(countries) == 1:
@@ -172,7 +179,7 @@ def get_feed():
             # Checking for language constraint
             if language != "" and row.language.lower() != language_gdelt.lower():
                 continue
-            time_string = row.seendate.replace("T", "").replace("Z", "")+"UTC"
+            time_string = row.seendate.replace("T", "").replace("Z", "") + "UTC"
             timestamp = dateparser.parse(date_string=time_string,
                                          date_formats=["%Y%m%d%H%M%S%Z"])
 
@@ -180,8 +187,10 @@ def get_feed():
                                  "time": timestamp.strftime("%a, %d %b %Y %H:%M:%S %z"), "source": SOURCES[1]})
 
     if not bool(article_feed):
-        return "No results found on this topic or country for the keywords inserted"
-    return json.dumps(article_feed, indent=2)
+        return json.dumps({'error': "No results found on this topic or country for the keywords inserted"},
+                          indent=2), 204
+    return json.dumps(article_feed, indent=2), 200
 
 
-app.run()
+if __name__ == "__main__":
+    app.run(host='0.0.0.0')
