@@ -14,7 +14,7 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-file_dir_countries = "{0}/rss-feeds/countries/".format(os.getcwd())
+file_dir_countries = "{0}/rss-feed-library/countries/".format(os.getcwd())
 country_files = [f.replace(".opml", "") for f in listdir(file_dir_countries) if isfile(join(file_dir_countries, f))]
 SOURCES = ["RSS", "GDELT"]
 DEFAULT_LANGUAGE = "English (United States) - en-us"
