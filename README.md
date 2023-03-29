@@ -3,22 +3,22 @@
 
 [![Coypu](https://pbs.twimg.com/profile_banners/1421069821723267072/1641392854/1500x500)](https://coypu.org/)
 
-This is a simple API that gather news articles from several sourcers and returns them according to multiple filters. Currently the sources of theese feeds are:
-- RSS Feeds (Feed library initialized by [Awesome RSS Feeds](https://github.com/plenaryapp/awesome-rss-feeds) Github )
+This is a simple API that gather news articles from several sources and returns them according to multiple filters. Currently, the sources of these feeds are:
+- RSS Feeds (Feed library initialized by [Awesome RSS Feeds](https://github.com/plenaryapp/awesome-rss-feeds) GitHub )
 - [The GDELT Project](https://blog.gdeltproject.org/)
 
 ## API Call
 
-The API can be accessed through a *POST* call to the url *https://feeds.skynet.coypu.org*. The call must always be accompaied with the parameter **key** in its body, which value must be the correct password. The call can be made with the following filters:
+The API can be accessed through a *POST* call to the url *https://feeds.skynet.coypu.org*. The call must always be accompanied by the parameter **key** in its body, which value must be the correct password. The call can be made with the following filters:
 | Filter | Usage | Example | Defaul value |Required? |
 | ------ | ------ |  ------ |  ------ |  ------ 
-| keywords | Keywords that must appear in the news title or summary. Multiple separeted by semilcolon. | Floods in |  | ✅  
-| domains | General domain that news must belong too. Multiple separeted by semilcolon. | www.dw.com | None |
+| keywords | Keywords that must appear in the news title or summary. Multiple separated by semicolon. | Floods in |  | ✅  
+| domains | General domain that news must belong too. Multiple separated by semicolon. | www.dw.com | None |
 | time_frame | Time constraint that limits the age of the news articles | 1h (more info ⬇️) |  1d ie. 24 hours
-| themes | General theme of the articles. Multiple separeted by semilcolon. | Political |  None |
+| themes | General theme of the articles. Multiple separated by semicolon. | Political |  None |
 | number_articles | Maximum number of articles | 10 | 250  |
 | language | Language that the news are in | German (Germany) - de-de (more info ⬇️)  | English (United States) - en-us |
-| countries | Countries where the articles are reported from. Multiple separeted by semilcolon. | Germany;Canada | Germany  |
+| countries | Countries where the articles are reported from. Multiple separated by semicolon. | Germany;Canada | Germany  |
 
 For example the call
 ```
@@ -39,7 +39,7 @@ The response of the API will be a JSON array with the different articles found. 
 - tittle - Tittle of the news article
 - link - URL link where the article can be found
 - time - Time formatted as ```%a, %d %b %Y %H:%M:%S %z``` according to the [Python datetime library](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes). The timezone is UTC.
-- source - Source from where the news was taken. Currently it can only be either "RSS" or "GDELT"
+- source - Source from where the news was taken. Currently, it can only be either "RSS" or "GDELT"
 
 ## More info on filters
 
@@ -49,7 +49,7 @@ The filter **time_frame** can take these following values:
 - 1w - One week, that is the last 7 days
 - 15m - 15 minutes
 
-The filter **language** comes from the offial collection of language from the RSS standard. So the filter must be one of the following (sent in the exact form):
+The filter **language** comes from the [official collection of languages from the RSS standard](https://www.rssboard.org/rss-language-codes). So the filter must be one of the following (sent in the exact form):
 - Afrikaans - af
 - Albanian - sq
 - Basque - eu

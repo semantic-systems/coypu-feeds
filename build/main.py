@@ -20,7 +20,7 @@ SOURCES = ["RSS", "GDELT"]
 DEFAULT_LANGUAGE = "English (United States) - en-us"
 DEFAULT_COUNTRY = "Germany"
 DELAULT_TRIME_FRAME = "1d"
-REQUEST_KEY = '82EWBRX6EG3YFVZY'
+REQUEST_KEY = 'VD3WRN6RE2VM2ACJ'
 
 
 @app.route('/', methods=['POST', 'GET'])
