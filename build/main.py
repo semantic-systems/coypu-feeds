@@ -23,18 +23,19 @@ DELAULT_TRIME_FRAME = "1d"
 REQUEST_KEY = 'VD3WRN6RE2VM2ACJ'
 
 
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/', methods=['POST'])
 def get_feed():
-    if 'key' not in request.form or request.form.get('key') != REQUEST_KEY:
+    print(request.json.get('key'))
+    if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
         return json.dumps({'error': 'no valid API key'}, indent=2), 401
 
-    keywords = request.args.get('keywords')
-    domains = request.args.get('domains')
-    time_frame = request.args.get('time_frame')
-    themes = request.args.get('themes')
-    number_articles = int(request.args.get('number_articles')) if request.args.get('number_articles') else 0
-    language = request.args.get('language')
-    countries = request.args.get('countries')
+    keywords = request.json.get('keywords')
+    domains = request.json.get('domains')
+    time_frame = request.json.get('time_frame')
+    themes = request.json.get('themes')
+    number_articles = int(request.json.get('number_articles')) if request.json.get('number_articles') else 0
+    language = request.json.get('language')
+    countries = request.json.get('countries')
 
     # Setting of default values
     language = language if language else DEFAULT_LANGUAGE
