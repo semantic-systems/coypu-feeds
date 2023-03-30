@@ -25,7 +25,6 @@ REQUEST_KEY = 'VD3WRN6RE2VM2ACJ'
 
 @app.route('/', methods=['POST'])
 def get_feed():
-    print(request.json.get('key'))
     if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
         return json.dumps({'error': 'no valid API key'}, indent=2), 401
 
