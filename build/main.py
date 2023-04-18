@@ -55,9 +55,7 @@ def get_feed():
         # Checking the number of articles limit
         if number_articles > 0:
             number_sources = len(SOURCES)
-            if len(countries) == 1:
-                limit_number_articles = (number_articles / number_sources)
-            elif len(countries) % 2 == 0:
+            if len(countries) % 2 == 0 or len(countries) == 1:
                 limit_number_articles = (number_articles / number_sources) / len(countries)
             else:
                 if index == len(countries) - 1:
@@ -138,12 +136,12 @@ def get_feed():
                             article_counter += 1
                             if "*" in entry.link:
                                 article_feed.append(
-                                    {"tittle": entry.title, "link": entry.link.split("*")[1],
-                                     "time": timestamp.strftime("%a, %d %b %Y %H:%M:%S %z"),
+                                    {"title": entry.title, "url": entry.link.split("*")[1],
+                                     "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
                                      "source": SOURCES[0]})
                             else:
-                                article_feed.append({"tittle": entry.title, "link": entry.link,
-                                                     "time": timestamp.strftime("%a, %d %b %Y %H:%M:%S %z"),
+                                article_feed.append({"title": entry.title, "url": entry.link,
+                                                     "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
                                                      "source": SOURCES[0]})
                         except AttributeError:
                             continue
@@ -179,12 +177,11 @@ def get_feed():
             # Checking for language constraint
             if language != "" and row.language.lower() != language_gdelt.lower():
                 continue
-            time_string = row.seendate.replace("T", "").replace("Z", "") + "UTC"
-            timestamp = dateparser.parse(date_string=time_string,
-                                         date_formats=["%Y%m%d%H%M%S%Z"])
+            timestamp = dateparser.parse(date_string=row.seendate,
+                                         date_formats=["%Y%m%dT%H%M%SZ"])
 
-            article_feed.append({"tittle": row.title, "link": row.url,
-                                 "time": timestamp.strftime("%a, %d %b %Y %H:%M:%S %z"), "source": SOURCES[1]})
+            article_feed.append({"title": row.title, "url": row.url,
+                                 "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), "source": SOURCES[1]})
 
     if not bool(article_feed):
         return json.dumps({'error': "No results found on this topic or country for the keywords inserted"},
