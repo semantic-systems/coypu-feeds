@@ -3,3 +3,4 @@ gdeltdoc
 feedparser
 opml
 dateparser
+pycountry
