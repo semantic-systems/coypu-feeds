@@ -11,6 +11,7 @@ import json
 from datetime import datetime
 import dateparser
 from flask import Flask, request
+import pycountry
 
 app = Flask(__name__)
 
@@ -23,18 +24,18 @@ DELAULT_TRIME_FRAME = "1d"
 REQUEST_KEY = 'VD3WRN6RE2VM2ACJ'
 
 
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/', methods=['POST'])
 def get_feed():
-    if 'key' not in request.form or request.form.get('key') != REQUEST_KEY:
+    if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
         return json.dumps({'error': 'no valid API key'}, indent=2), 401
 
-    keywords = request.args.get('keywords')
-    domains = request.args.get('domains')
-    time_frame = request.args.get('time_frame')
-    themes = request.args.get('themes')
-    number_articles = int(request.args.get('number_articles')) if request.args.get('number_articles') else 0
-    language = request.args.get('language')
-    countries = request.args.get('countries')
+    keywords = request.json.get('keywords')
+    domains = request.json.get('domains')
+    time_frame = request.json.get('time_frame')
+    themes = request.json.get('themes')
+    number_articles = int(request.json.get('number_articles')) if request.json.get('number_articles') else 0
+    language = request.json.get('language')
+    countries = request.json.get('countries')
 
     # Setting of default values
     language = language if language else DEFAULT_LANGUAGE
@@ -51,13 +52,23 @@ def get_feed():
     limit_number_articles = 0
 
     for index, country in enumerate(countries):
+        try:
+            country_iso = pycountry.countries.get(name=country)
+            if not country_iso:
+                country = pycountry.countries.get(alpha_3=country)
+                if not country:
+                    return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
+                                      indent=2), 204
+            else:
+                country = country_iso
+        except ValueError:
+            return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
+                              indent=2), 204
 
         # Checking the number of articles limit
         if number_articles > 0:
             number_sources = len(SOURCES)
-            if len(countries) == 1:
-                limit_number_articles = (number_articles / number_sources)
-            elif len(countries) % 2 == 0:
+            if len(countries) % 2 == 0 or len(countries) == 1:
                 limit_number_articles = (number_articles / number_sources) / len(countries)
             else:
                 if index == len(countries) - 1:
@@ -66,12 +77,12 @@ def get_feed():
                     limit_number_articles = int((number_articles / number_sources) / len(countries))
 
         article_counter = 0
-        if country in country_files:
+        if country.name in country_files:
             """
             Iterating on the RSS Feeds
             """
             try:
-                for item in opml.parse(file_dir_countries + country + ".opml"):
+                for item in opml.parse(file_dir_countries + country.name + ".opml"):
                     # Checking for domains
                     if domains:
                         is_in_domain = False
@@ -81,9 +92,11 @@ def get_feed():
                                 break
                         if not is_in_domain:
                             continue
-
-                    feed = feedparser.parse(item.xmlUrl)
-
+                    try:
+                        feed = feedparser.parse(item.xmlUrl)
+                    except:
+                        print("Error on request for the feed in the country file " + file_dir_countries + country.name +
+                              ".opml. The URL rasing this error is: "+item.xmlUrl)
                     # Checking for language constraint
                     try:
                         if language and feed.feed.language.lower() != language_rss:
@@ -138,17 +151,17 @@ def get_feed():
                             article_counter += 1
                             if "*" in entry.link:
                                 article_feed.append(
-                                    {"tittle": entry.title, "link": entry.link.split("*")[1],
-                                     "time": timestamp.strftime("%a, %d %b %Y %H:%M:%S %z"),
+                                    {"title": entry.title, "url": entry.link.split("*")[1],
+                                     "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
                                      "source": SOURCES[0]})
                             else:
-                                article_feed.append({"tittle": entry.title, "link": entry.link,
-                                                     "time": timestamp.strftime("%a, %d %b %Y %H:%M:%S %z"),
+                                article_feed.append({"title": entry.title, "url": entry.link,
+                                                     "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
                                                      "source": SOURCES[0]})
                         except AttributeError:
                             continue
             except XMLSyntaxError:
-                print("Error on XML file for RSS links : " + file_dir_countries + country + ".opml")
+                print("Error on XML file for RSS links : " + file_dir_countries + country.name + ".opml")
 
         """
         Going through the Gdelt feed
@@ -163,28 +176,33 @@ def get_feed():
         if themes and ";" in themes:
             themes = themes.split(";")
 
-        gdelt_filters = Filters(
-            keyword=keywords,
-            timespan=time_frame,
-            domain=domains,
-            country=country.lower().replace(" ", ""),
-            theme=themes,
-            num_records=limit_number_articles if number_articles > 0 else 250
-        )
+        try:
+            json_exceptions = json.load(open("exceptions.json"))['countries_names']
+            is_exception = country.name in json_exceptions
 
-        gd = GdeltDoc()
+            gdelt_filters = Filters(
+                keyword=keywords,
+                timespan=time_frame,
+                domain=domains,
+                country=country.name if not is_exception else json_exceptions[country.name],
+                theme=themes,
+                num_records=limit_number_articles if number_articles > 0 else 250
+            )
 
-        # Iterating through the articles from the Gdelt after applying the filters, if there are any
-        for index_row, row in gd.article_search(gdelt_filters).iterrows():
-            # Checking for language constraint
-            if language != "" and row.language.lower() != language_gdelt.lower():
-                continue
-            time_string = row.seendate.replace("T", "").replace("Z", "") + "UTC"
-            timestamp = dateparser.parse(date_string=time_string,
-                                         date_formats=["%Y%m%d%H%M%S%Z"])
+            gd = GdeltDoc()
 
-            article_feed.append({"tittle": row.title, "link": row.url,
-                                 "time": timestamp.strftime("%a, %d %b %Y %H:%M:%S %z"), "source": SOURCES[1]})
+            # Iterating through the articles from the Gdelt after applying the filters, if there are any
+            for index_row, row in gd.article_search(gdelt_filters).iterrows():
+                # Checking for language constraint
+                if language != "" and row.language.lower() != language_gdelt.lower():
+                    continue
+                timestamp = dateparser.parse(date_string=row.seendate,
+                                             date_formats=["%Y%m%dT%H%M%SZ"])
+
+                article_feed.append({"title": row.title, "url": row.url,
+                                     "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), "source": SOURCES[1]})
+        except ValueError:
+            print("Invalid or Unsupported Country: '"+country.name + "'.Please check the documentation.")
 
     if not bool(article_feed):
         return json.dumps({'error': "No results found on this topic or country for the keywords inserted"},

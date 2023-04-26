@@ -12,13 +12,13 @@ This is a simple API that gather news articles from several sources and returns 
 The API can be accessed through a *POST* call to the url *https://feeds.skynet.coypu.org*. The call must always be accompanied by the parameter **key** in its body, which value must be the correct password. The call can be made with the following filters:
 | Filter | Usage | Example | Defaul value |Required? |
 | ------ | ------ |  ------ |  ------ |  ------ 
-| keywords | Keywords that must appear in the news title or summary. Multiple separated by semicolon. | Floods in |  | ✅  
-| domains | General domain that news must belong too. Multiple separated by semicolon. | www.dw.com | None |
+| keywords | Keywords that must appear in the news title or summary. **For multiple separate by semicolon.** | Floods in |  | ✅  
+| domains | General domain that news must belong too. **For multiple separate by semicolon.** | www.dw.com | None |
 | time_frame | Time constraint that limits the age of the news articles | 1h (more info ⬇️) |  1d ie. 24 hours
-| themes | General theme of the articles. Multiple separated by semicolon. | Political |  None |
+| themes | General theme of the articles. **For multiple separate by semicolon.** | Political |  None |
 | number_articles | Maximum number of articles | 10 | 250  |
 | language | Language that the news are in | German (Germany) - de-de (more info ⬇️)  | English (United States) - en-us |
-| countries | Countries where the articles are reported from. Multiple separated by semicolon. | Germany;Canada | Germany  |
+| countries | Countries where the articles are reported from. [Alpha-3 from ISO 3166-1](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) is allowed. The names of the countries are also taken from that standard.  **For multiple separate by semicolon.** | GER;Canada | Germany  |
 
 For example the call
 ```
@@ -36,10 +36,15 @@ returns the articles that were reported in Canada for the last week with the key
 
 ## API Answer
 The response of the API will be a JSON array with the different articles found. Each item has the following fields:
-- tittle - Tittle of the news article
-- link - URL link where the article can be found
-- time - Time formatted as ```%a, %d %b %Y %H:%M:%S %z``` according to the [Python datetime library](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes). The timezone is UTC.
-- source - Source from where the news was taken. Currently, it can only be either "RSS" or "GDELT"
+- title - Tittle of the news article
+- url - URL link where the article can be found
+- timestamp - Time formatted as ```%Y-%m-%dT%H:%M:%SZ``` according to the [Python datetime library](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes). **The timezone is UTC.**
+- source - Source from where the news was taken. **Currently, it can only be either "RSS" or "GDELT"**
+
+## Exceptions
+Due to discrepancies in the libraries and standards used from the sources a JSON file for exceptions has been introduced, called "exceptions.json".
+It is currently mainly used for the discrepancies between the countries from [ISO 3166](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes) and [FIPS 10-4](https://en.wikipedia.org/wiki/List_of_FIPS_country_codes) used by GDELT.
+Only the discrepancies that have been manually found are added, so it is a growing file.
 
 ## More info on filters
 
