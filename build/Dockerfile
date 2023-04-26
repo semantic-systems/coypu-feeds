@@ -16,6 +16,7 @@ RUN pip install -r /src/requirements.txt
 
 COPY main.py /src/
 COPY rss-feed-library /src/rss-feed-library
+COPY exceptions.json /src/
 WORKDIR src
 
 EXPOSE 5282/tcp
