@@ -15,6 +15,8 @@ The API can be accessed through a *POST* call to the url *https://feeds.skynet.c
 | keywords | Keywords that must appear in the news title or summary. **For multiple separate by semicolon.** | Floods in |  | ✅  
 | domains | General domain that news must belong too. **For multiple separate by semicolon.** | www.dw.com | None |
 | time_frame | Time constraint that limits the age of the news articles | 1h (more info ⬇️) |  1d ie. 24 hours
+| initial_date | Initial constraint that limits the publishing time of the articles.  | 2023-04-20 (more info ⬇️) |  None
+| final_date | Ending constraint that limits the publishing time of the articles | 2023-05-20 (more info ⬇️) |  Current date
 | themes | General theme of the articles. **For multiple separate by semicolon.** | Political |  None |
 | number_articles | Maximum number of articles | 10 | 250  |
 | language | Language that the news are in | German (Germany) - de-de (more info ⬇️)  | English (United States) - en-us |
@@ -53,6 +55,14 @@ The filter **time_frame** can take these following values:
 - 1d - One day, that is the last 24 hours
 - 1w - One week, that is the last 7 days
 - 15m - 15 minutes
+
+The filters **initial_date** and **final_date** expect the format ```%Y-%m-%d``` according to the [Python datetime library](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes).  **The timezone is UTC.** This range is inclusive only in the initial_date side, it excludes the latest date in the final_date side. For example the values
+- initial_date: 2023-04-20 
+- final_date: 2023-04-25
+
+The system will return the articles published between the first second of 2023-04-20 and midnight of 2023-04-24.
+
+If the final_date filter is not given it defaults to the current date. However, if the initial_date filter is missing the **time_frame** filter will be taking priority **even** if the final_date value has ben sent. If both filters are given but the initial_date is later than the final_date it will be returning an error.
 
 The filter **language** comes from the [official collection of languages from the RSS standard](https://www.rssboard.org/rss-language-codes). So the filter must be one of the following (sent in the exact form):
 - Afrikaans - af

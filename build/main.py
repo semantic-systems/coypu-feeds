@@ -32,6 +32,8 @@ def get_feed():
     keywords = request.json.get('keywords')
     domains = request.json.get('domains')
     time_frame = request.json.get('time_frame')
+    initial_date = request.json.get('initial_date')
+    final_date = request.json.get('final_date')
     themes = request.json.get('themes')
     number_articles = int(request.json.get('number_articles')) if request.json.get('number_articles') else 0
     language = request.json.get('language')
@@ -40,10 +42,24 @@ def get_feed():
     # Setting of default values
     language = language if language else DEFAULT_LANGUAGE
     countries = countries if countries else DEFAULT_COUNTRY
-    time_frame = time_frame if time_frame else DELAULT_TRIME_FRAME
 
     if not keywords:
         return json.dumps({'error': 'Missing keywords for the search'}, indent=2), 400
+
+    # If neither time frame or initial date is given it will be given the default value and time_frame takes priority
+    if not time_frame and not initial_date:
+        time_frame = time_frame if time_frame else DELAULT_TRIME_FRAME
+    elif not time_frame and initial_date:
+        initial_date = dateparser.parse(initial_date).replace(tzinfo=pytz.utc)
+        if final_date:
+            final_date = dateparser.parse(final_date).replace(tzinfo=pytz.utc)
+            # Checking that the final date is not earlier than the initial date
+            if final_date < initial_date:
+                return json.dumps({'error': 'Contrasting date ranges, make sure they are ordered correctly with time.'}
+                                  , indent=2), 400
+        # The final date defaults to current date if not specified
+        else:
+            final_date = datetime.now(pytz.utc)
 
     language_rss = language.split(" - ")[1] if language != "" else language
     language_gdelt = language.split(" - ")[0].split(" (")[0]
@@ -127,8 +143,8 @@ def get_feed():
                                 if not is_theme_in:
                                     continue
 
-                            # Checking for time_frame constraint
                             timestamp = dateparser.parse(entry.published)
+                            # Checking for time_frame constraint
                             if time_frame:
 
                                 now = datetime.now(pytz.utc)
@@ -145,6 +161,14 @@ def get_feed():
                                 elif time_frame == "15m":
                                     if diff.total_seconds() > 900:
                                         continue
+                            # Checking for the time interval
+                            else:
+                                # Making sure the timestamp from the feed is timezone aware, else it can't be compared
+                                if timestamp.tzinfo is None or timestamp.tzinfo.utcoffset(timestamp) is None:
+                                    timestamp = timestamp.replace(tzinfo=pytz.utc)
+
+                                if not (initial_date < timestamp < final_date):
+                                    continue
 
                             if number_articles > 0 and article_counter >= limit_number_articles:
                                 break
@@ -153,11 +177,13 @@ def get_feed():
                                 article_feed.append(
                                     {"title": entry.title, "url": entry.link.split("*")[1],
                                      "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                                     "source": SOURCES[0]})
+                                     "source": SOURCES[0], "country_alpha_3": country.alpha_3,
+                                     "country_name": country.name})
                             else:
                                 article_feed.append({"title": entry.title, "url": entry.link,
                                                      "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                                                     "source": SOURCES[0]})
+                                                     "source": SOURCES[0], "country_alpha_3": country.alpha_3,
+                                                     "country_name": country.name})
                         except AttributeError:
                             continue
             except XMLSyntaxError:
@@ -182,17 +208,19 @@ def get_feed():
 
             gdelt_filters = Filters(
                 keyword=keywords,
-                timespan=time_frame,
+                timespan=time_frame if time_frame else None,
+                start_date=initial_date.strftime("%Y-%m-%d") if not time_frame else None,
+                end_date=final_date.strftime("%Y-%m-%d") if not time_frame else None,
                 domain=domains,
                 country=country.name if not is_exception else json_exceptions[country.name],
                 theme=themes,
                 num_records=limit_number_articles if number_articles > 0 else 250
             )
 
-            gd = GdeltDoc()
+            resulting_articles = GdeltDoc().article_search(gdelt_filters)
 
             # Iterating through the articles from the Gdelt after applying the filters, if there are any
-            for index_row, row in gd.article_search(gdelt_filters).iterrows():
+            for index_row, row in resulting_articles.iterrows():
                 # Checking for language constraint
                 if language != "" and row.language.lower() != language_gdelt.lower():
                     continue
@@ -200,7 +228,8 @@ def get_feed():
                                              date_formats=["%Y%m%dT%H%M%SZ"])
 
                 article_feed.append({"title": row.title, "url": row.url,
-                                     "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), "source": SOURCES[1]})
+                                     "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), "source": SOURCES[1],
+                                     "country_alpha_3": country.alpha_3, "country_name": country.name})
         except ValueError:
             print("Invalid or Unsupported Country: '"+country.name + "'.Please check the documentation.")
 
