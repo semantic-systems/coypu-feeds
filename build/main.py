@@ -52,6 +52,9 @@ def get_feed():
         initial_date = dateparser.parse(initial_date).replace(tzinfo=pytz.utc)
         if final_date:
             final_date = dateparser.parse(final_date).replace(tzinfo=pytz.utc)
+            if final_date < initial_date:
+                return json.dumps({'error': 'Contrasting date ranges, make sure they are ordered correctly with time.'}
+                                  , indent=2), 400
         else:
             final_date = datetime.now(pytz.utc)
 
