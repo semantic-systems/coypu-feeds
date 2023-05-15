@@ -171,11 +171,13 @@ def get_feed():
                                 article_feed.append(
                                     {"title": entry.title, "url": entry.link.split("*")[1],
                                      "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                                     "source": SOURCES[0]})
+                                     "source": SOURCES[0], "country_alpha_3": country.alpha_3,
+                                     "country_name": country.name})
                             else:
                                 article_feed.append({"title": entry.title, "url": entry.link,
                                                      "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                                                     "source": SOURCES[0]})
+                                                     "source": SOURCES[0], "country_alpha_3": country.alpha_3,
+                                                     "country_name": country.name})
                         except AttributeError:
                             continue
             except XMLSyntaxError:
@@ -209,10 +211,10 @@ def get_feed():
                 num_records=limit_number_articles if number_articles > 0 else 250
             )
 
-            gd = GdeltDoc()
+            resulting_articles = GdeltDoc().article_search(gdelt_filters)
 
             # Iterating through the articles from the Gdelt after applying the filters, if there are any
-            for index_row, row in gd.article_search(gdelt_filters).iterrows():
+            for index_row, row in resulting_articles.iterrows():
                 # Checking for language constraint
                 if language != "" and row.language.lower() != language_gdelt.lower():
                     continue
@@ -220,7 +222,8 @@ def get_feed():
                                              date_formats=["%Y%m%dT%H%M%SZ"])
 
                 article_feed.append({"title": row.title, "url": row.url,
-                                     "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), "source": SOURCES[1]})
+                                     "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), "source": SOURCES[1],
+                                     "country_alpha_3": country.alpha_3, "country_name": country.name})
         except ValueError:
             print("Invalid or Unsupported Country: '"+country.name + "'.Please check the documentation.")
 
