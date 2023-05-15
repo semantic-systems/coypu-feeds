@@ -42,6 +42,8 @@ The response of the API will be a JSON array with the different articles found. 
 - url - URL link where the article can be found
 - timestamp - Time formatted as ```%Y-%m-%dT%H:%M:%SZ``` according to the [Python datetime library](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes). **The timezone is UTC.**
 - source - Source from where the news was taken. **Currently, it can only be either "RSS" or "GDELT"**
+- country_name - Name of the country the article originate from, for human readable reasons
+- country_alpha_3 - Code [Alpha-3 from ISO 3166-1](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) of the country the article came from
 
 ## Exceptions
 Due to discrepancies in the libraries and standards used from the sources a JSON file for exceptions has been introduced, called "exceptions.json".
