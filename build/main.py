@@ -46,15 +46,18 @@ def get_feed():
     if not keywords:
         return json.dumps({'error': 'Missing keywords for the search'}, indent=2), 400
 
+    # If neither time frame or initial date is given it will be given the default value and time_frame takes priority
     if not time_frame and not initial_date:
         time_frame = time_frame if time_frame else DELAULT_TRIME_FRAME
     elif not time_frame and initial_date:
         initial_date = dateparser.parse(initial_date).replace(tzinfo=pytz.utc)
         if final_date:
             final_date = dateparser.parse(final_date).replace(tzinfo=pytz.utc)
+            # Checking that the final date is not earlier than the initial date
             if final_date < initial_date:
                 return json.dumps({'error': 'Contrasting date ranges, make sure they are ordered correctly with time.'}
                                   , indent=2), 400
+        # The final date defaults to current date if not specified
         else:
             final_date = datetime.now(pytz.utc)
 
