@@ -26,6 +26,31 @@ REQUEST_KEY = 'VD3WRN6RE2VM2ACJ'
 
 @app.route('/', methods=['POST'])
 def get_feed():
+    """
+    Main endpoint of the API, to obtain set of articles from different sources.
+
+        These following arguments must come on a POST request. ONLY keywords is required. Everything else fall into
+        the default values if missing.
+        keywords = Keywords that must appear in the news title or summary. For multiple separate by semicolon.
+        domains = General domain that news must belong too. For multiple separate by semicolon.
+            default value -> None
+        time_frame = Time constraint that limits the age of the news articles
+            default value -> 1d (24 hours)
+        initial_date = Initial constraint that limits the publishing time of the articles
+            default value -> None
+        final_date = Ending constraint that limits the publishing time of the articles
+            default value -> None or Current date if initial date was given
+        themes = General theme of the articles
+            default value -> None
+        number_articles = Maximum number of articles
+            default value -> 250
+        language = Language that the news are in
+            default value -> English (United States) - en-us
+        countries = Countries where the articles are reported from
+            default value -> Germany
+    :return: Set of news articles in JSON format with these fields: title,url, timestamp,source,country name in alpha 3
+    and country name.
+    """
     if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
         return json.dumps({'error': 'no valid API key'}, indent=2), 401
 
@@ -231,7 +256,7 @@ def get_feed():
                                      "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), "source": SOURCES[1],
                                      "country_alpha_3": country.alpha_3, "country_name": country.name})
         except ValueError:
-            print("Invalid or Unsupported Country: '"+country.name + "'.Please check the documentation.")
+            print("Invalid or Unsupported Country: '" + country.name + "'.Please check the documentation.")
 
     if not bool(article_feed):
         return json.dumps({'error': "No results found on this topic or country for the keywords inserted"},
