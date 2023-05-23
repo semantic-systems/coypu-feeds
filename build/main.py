@@ -239,5 +239,67 @@ def get_feed():
     return json.dumps(article_feed, indent=2), 200
 
 
+@app.route('/update_country_names_exceptions', methods=['POST'])
+def get_country_names_exceptions():
+    """
+        Obtains the list of current exceptions for country names.
+
+    :return: List of all the exceptions, in JSON format
+    """
+    if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
+        return json.dumps({'error': 'no valid API key'}, indent=2), 401
+
+    return json.dumps(json.load(open("exceptions.json"))['countries_names'], indent=2), 200
+
+
+@app.route('/update_country_names_exceptions', methods=['POST'])
+def update_country_names_exceptions():
+    """
+        Adds, updates or deletes a name exception for a country.
+        If the exception does not exist it will be added. If it exists and a value was give it will be updated.
+        If it exists and no value was given it will be deleted.
+
+    :return: JSON formatted result. If the exception was deleted it will be an object with the key "deleted_exception".
+    If it was added or updated it will return an object with the exception created.
+    """
+    if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
+        return json.dumps({'error': 'no valid API key'}, indent=2), 401
+
+    country = request.json.get('country')
+    exception = request.json.get('exception')
+
+    try:
+        country_iso = pycountry.countries.get(name=country)
+        if not country_iso:
+            country = pycountry.countries.get(alpha_3=country)
+            if not country:
+                return json.dumps(
+                    {'error': "No results found on this country, please verify the code or name of it"},
+                    indent=2), 204
+        else:
+            country = country_iso
+    except ValueError:
+        return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
+                          indent=2), 204
+
+    json_exceptions = json.load(open("exceptions.json"))['countries_names']
+    is_in_exception = country.name in json_exceptions
+
+    with open('exceptions.json', 'r+') as f:
+        if is_in_exception:
+            json_exceptions.pop(country.name)
+            if exception != '':
+                json_exceptions[country.name] = exception
+        else:
+            json_exceptions[country.name] = exception
+        data = json.load(f)
+        data['countries_names'] = json_exceptions
+        f.seek(0)
+        json.dump(data, f, indent=2)
+        f.truncate()
+    if is_in_exception and exception == '':
+        return json.dumps({"deleted_exception": country.name}, indent=2), 200
+    return json.dumps({country.name: exception}, indent=2), 200
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
