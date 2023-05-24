@@ -26,6 +26,31 @@ REQUEST_KEY = 'VD3WRN6RE2VM2ACJ'
 
 @app.route('/', methods=['POST'])
 def get_feed():
+    """
+    Main endpoint of the API, to obtain set of articles from different sources.
+
+        These following arguments must come on a POST request. ONLY keywords is required. Everything else fall into
+        the default values if missing.
+        keywords = Keywords that must appear in the news title or summary. For multiple separate by semicolon.
+        domains = General domain that news must belong too. For multiple separate by semicolon.
+            default value -> None
+        time_frame = Time constraint that limits the age of the news articles
+            default value -> 1d (24 hours)
+        initial_date = Initial constraint that limits the publishing time of the articles
+            default value -> None
+        final_date = Ending constraint that limits the publishing time of the articles
+            default value -> None or Current date if initial date was given
+        themes = General theme of the articles
+            default value -> None
+        number_articles = Maximum number of articles
+            default value -> 250
+        language = Language that the news are in
+            default value -> English (United States) - en-us
+        countries = Countries where the articles are reported from
+            default value -> Germany
+    :return: Set of news articles in JSON format with these fields: title,url, timestamp,source,country name in alpha 3
+    and country name.
+    """
     if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
         return json.dumps({'error': 'no valid API key'}, indent=2), 401
 
@@ -231,13 +256,79 @@ def get_feed():
                                      "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), "source": SOURCES[1],
                                      "country_alpha_3": country.alpha_3, "country_name": country.name})
         except ValueError:
-            print("Invalid or Unsupported Country: '"+country.name + "'.Please check the documentation.")
+            print("Invalid or Unsupported Country: '" + country.name + "'.Please check the documentation.")
 
     if not bool(article_feed):
         return json.dumps({'error': "No results found on this topic or country for the keywords inserted"},
                           indent=2), 204
     return json.dumps(article_feed, indent=2), 200
 
+
+@app.route('/get_country_names_exceptions', methods=['GET'])
+def get_country_names_exceptions():
+    """
+        Obtains the list of current exceptions for country names.
+
+    :return: List of all the exceptions, in JSON format
+    """
+    if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
+        return json.dumps({'error': 'no valid API key'}, indent=2), 401
+
+    return json.dumps(json.load(open("exceptions.json"))['countries_names'], indent=2), 200
+
+
+@app.route('/update_country_names_exceptions', methods=['POST'])
+def update_country_names_exceptions():
+    """
+        Adds, updates or deletes a name exception for a country.
+        If the exception does not exist it will be added. If it exists and a value was give it will be updated.
+        If it exists and no value was given it will be deleted.
+
+    :return: JSON formatted result. If the exception was deleted it will be an object with the key "deleted_exception".
+    If it was added or updated it will return an object with the exception created.
+    """
+    if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
+        return json.dumps({'error': 'no valid API key'}, indent=2), 401
+
+    country = request.json.get('country')
+    exception = request.json.get('exception')
+
+    try:
+        country_iso = pycountry.countries.get(name=country)
+        if not country_iso:
+            country = pycountry.countries.get(alpha_3=country)
+            if not country:
+                return json.dumps(
+                    {'error': "No results found on this country, please verify the code or name of it"},
+                    indent=2), 404
+        else:
+            country = country_iso
+    except ValueError:
+        return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
+                          indent=2), 404
+
+    json_exceptions = json.load(open("exceptions.json"))['countries_names']
+    is_in_exception = country.name in json_exceptions
+
+    with open('exceptions.json', 'r+') as f:
+        if is_in_exception:
+            json_exceptions.pop(country.name)
+            if exception != '':
+                json_exceptions[country.name] = exception
+        else:
+            if exception == '':
+                return json.dumps({'error': "To set up an exception you must send the exception field, an empty value"
+                                            " was sent."},
+                                  indent=2), 404
+            json_exceptions[country.name] = exception
+        data = json.load(f)
+        data['countries_names'] = json_exceptions
+        f.seek(0)
+        json.dump(data, f, indent=2)
+        f.truncate()
+    if is_in_exception and exception == '':
+        return json.dumps({"deleted_exception": country.name}, indent=2), 200
+    return json.dumps({country.name: exception}, indent=2), 200
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
