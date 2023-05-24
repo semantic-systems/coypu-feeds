@@ -7,7 +7,7 @@ This is a simple API that gather news articles from several sources and returns 
 - RSS Feeds (Feed library initialized by [Awesome RSS Feeds](https://github.com/plenaryapp/awesome-rss-feeds) GitHub )
 - [The GDELT Project](https://blog.gdeltproject.org/)
 
-## API Call
+## Main Endpoint Call
 
 The API can be accessed through a *POST* call to the url *https://feeds.skynet.coypu.org*. The call must always be accompanied by the parameter **key** in its body, which value must be the correct password. The call can be made with the following filters:
 | Filter | Usage | Example | Defaul value |Required? |
@@ -36,7 +36,7 @@ https://feeds.skynet.coypu.org?countries=Canada&language=English (Canada) - en-c
 
 returns the articles that were reported in Canada for the last week with the keywords "Food inflation", in Canadian English.
 
-## API Answer
+## Main Endpoint Answer
 The response of the API will be a JSON array with the different articles found. Each item has the following fields:
 - title - Tittle of the news article
 - url - URL link where the article can be found
@@ -48,8 +48,40 @@ The response of the API will be a JSON array with the different articles found. 
 ## Exceptions
 Due to discrepancies in the libraries and standards used from the sources a JSON file for exceptions has been introduced, called "exceptions.json".
 It is currently mainly used for the discrepancies between the countries from [ISO 3166](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes) and [FIPS 10-4](https://en.wikipedia.org/wiki/List_of_FIPS_country_codes) used by GDELT.
-Only the discrepancies that have been manually found are added, so it is a growing file.
+Only the discrepancies that have been manually found are added, so it is a growing file. 
 
+### Exceptions for Name of Country 
+
+#### Listing
+The endpoint on ```/get_country_names_exceptions``` can be used to check the current exceptions that the file holds. This call must be done with the **GET** protocol, no parameters are necessary.
+
+The **answer** would be given as a list of the exception in the body of the response. Like so:
+```
+{
+    "Russian Federation": "Russia",
+    "Iran, Islamic Republic of": "Iran",
+    "United States": "US"
+}
+```
+
+#### Adding, Updating and Deleting
+To add, update or delete exception once can use the endpoint on ```/update_country_names_exceptions```. This call must be done with the **POST** protocol with the following parameters:
+- country - Name of the country to add exception to, must be the name indicated in [ISO 3166](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes)
+- exception - Term that is recognized by GDELT (discrepancies have been found between the names they say they have and the ones they actually accept)
+
+To **add or update** an exception simply send both parameters, if the exception exist it will be updated if not it will be created. 
+If the exception is correctly processed it returns the exception added:
+```
+{
+    "Guatemala": "GT"
+}
+```
+To **delete** an exception one must simply send an empty string for the exception field. If the exception is correctly deleted the response will have an object with the key "deleted_exception". For example:
+```
+{
+    "deleted_exception": "Guatemala"
+}
+```
 ## More info on filters
 
 The filter **time_frame** can take these following values:

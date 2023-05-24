@@ -264,7 +264,7 @@ def get_feed():
     return json.dumps(article_feed, indent=2), 200
 
 
-@app.route('/update_country_names_exceptions', methods=['POST'])
+@app.route('/get_country_names_exceptions', methods=['GET'])
 def get_country_names_exceptions():
     """
         Obtains the list of current exceptions for country names.
