@@ -22,16 +22,25 @@ The API can be accessed through a **POST** call to the URL ```https://feeds.skyn
 | language | Language that the news are in | German (Germany) - de-de (more info ⬇️)  | English (United States) - en-us |
 | countries | Countries where the articles are reported from. [Alpha-3 from ISO 3166-1](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) is allowed. The names of the countries are also taken from that standard.  **For multiple separate by semicolon.** | GER;Canada | Germany  |
 
-For example the call
+For example the call to the URL with the body:
 ```
-https://feeds.skynet.coypu.org?keywords=War in
+{
+    "key" : "VD3WRN6RE2VM2ACJ",
+    "keywords":"War in"
+}
 ```
 returns the articles reported the last 24 hours in Germany in English (United States) that has the keyword "War in" in either their title or summary.
 
-And the call
+And the call with the body:
 
 ```
-https://feeds.skynet.coypu.org?countries=Canada&language=English (Canada) - en-ca&keywords=Food inflation&time_frame=1w
+{
+    "key" : "VD3WRN6RE2VM2ACJ",
+    "countries":"Canada", 
+    "language":"English (Canada) - en-ca",
+    "keywords":"Food inflation",
+    "time_frame":"1w"
+}
 ```
 
 returns the articles that were reported in Canada for the last week with the keywords "Food inflation", in Canadian English.
