@@ -9,7 +9,7 @@ This is a simple API that gather news articles from several sources and returns 
 
 ## Main Endpoint Call
 
-The API can be accessed through a *POST* call to the url *https://feeds.skynet.coypu.org*. The call must always be accompanied by the parameter **key** in its body, which value must be the correct password. The call can be made with the following filters:
+The API can be accessed through a **POST** call to the URL ```https://feeds.skynet.coypu.org```. The call must always be accompanied by the parameter **key** in its body, which value must be the correct password. The call can be made with the following filters:
 | Filter | Usage | Example | Defaul value |Required? |
 | ------ | ------ |  ------ |  ------ |  ------ 
 | keywords | Keywords that must appear in the news title or summary. **For multiple separate by semicolon.** | Floods in |  | ✅  
