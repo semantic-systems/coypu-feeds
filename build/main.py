@@ -300,12 +300,12 @@ def update_country_names_exceptions():
             if not country:
                 return json.dumps(
                     {'error': "No results found on this country, please verify the code or name of it"},
-                    indent=2), 204
+                    indent=2), 404
         else:
             country = country_iso
     except ValueError:
         return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
-                          indent=2), 204
+                          indent=2), 404
 
     json_exceptions = json.load(open("exceptions.json"))['countries_names']
     is_in_exception = country.name in json_exceptions
@@ -316,6 +316,10 @@ def update_country_names_exceptions():
             if exception != '':
                 json_exceptions[country.name] = exception
         else:
+            if exception == '':
+                return json.dumps({'error': "To set up an exception you must send the exception field, an empty value"
+                                            " was sent."},
+                                  indent=2), 404
             json_exceptions[country.name] = exception
         data = json.load(f)
         data['countries_names'] = json_exceptions
