@@ -12,6 +12,7 @@ from datetime import datetime
 import dateparser
 from flask import Flask, request
 import pycountry
+import lxml.etree as le
 
 app = Flask(__name__)
 
@@ -98,8 +99,9 @@ def get_feed():
             if not country_iso:
                 country = pycountry.countries.get(alpha_3=country)
                 if not country:
-                    return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
-                                      indent=2), 204
+                    return json.dumps(
+                        {'error': "No results found on this country, please verify the code or name of it"},
+                        indent=2), 204
             else:
                 country = country_iso
         except ValueError:
@@ -137,7 +139,7 @@ def get_feed():
                         feed = feedparser.parse(item.xmlUrl)
                     except:
                         print("Error on request for the feed in the country file " + file_dir_countries + country.name +
-                              ".opml. The URL rasing this error is: "+item.xmlUrl)
+                              ".opml. The URL rasing this error is: " + item.xmlUrl)
                     # Checking for language constraint
                     try:
                         if language and feed.feed.language.lower() != language_rss:
@@ -329,6 +331,162 @@ def update_country_names_exceptions():
     if is_in_exception and exception == '':
         return json.dumps({"deleted_exception": country.name}, indent=2), 200
     return json.dumps({country.name: exception}, indent=2), 200
+
+
+@app.route('/add_elem_rss_library', methods=['POST'])
+def add_elem_rss_library():
+    """
+    Adds or updates the entries of the library RSS Feeds from the countries sent
+    :return: list of successes and errors, logging of the modifications
+    """
+    if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
+        return json.dumps({'error': 'no valid API key'}, indent=2), 401
+    errors = []
+    successes = []
+    modifications = request.json.get('modifications')
+    for modification in modifications:
+        country = modification["country"]
+        current_sent_country = country
+        try:
+            country_iso = pycountry.countries.get(name=country)
+            if not country_iso:
+                country = pycountry.countries.get(alpha_3=country)
+                if not country:
+                    errors.append({'country_name_sent': current_sent_country})
+                    continue
+            else:
+                country = country_iso
+            if country.name not in country_files:
+                errors.append({'country_name_sent': country.name})
+                continue
+        except ValueError:
+            errors.append({'country_name_sent': current_sent_country})
+            continue
+        elements = modification["elements"]
+        for element in elements:
+            url = element['url']
+            title = element['title']
+            description = element['description']
+            xml_string = None
+            with open(file_dir_countries + country.name + ".opml", 'r') as f:
+                doc = le.parse(f)
+                parent = None
+                xml_elements = doc.xpath('//*[attribute::xmlUrl]')
+                for elem in xml_elements:
+                    if not parent:
+                        parent = elem.getparent()
+                    if elem.attrib['xmlUrl'] == url:
+                        parent.remove(elem)
+                        break
+                parent.insert(len(xml_elements) + 1, le.Element("output", text="", title=title, description=description,
+                                                                xmlUrl=url, type="rss"))
+                le.indent(doc)
+                xml_string = le.tostring(doc, pretty_print=True)
+            with open(file_dir_countries + country.name + ".opml", "wb") as output_file:
+                output_file.write(xml_string)
+                successes.append({'country': country.name, 'title': title, 'description': description, 'url': url})
+    if successes:
+        return json.dumps({'errors': errors, 'successes': successes}, indent=2), 200
+    else:
+        return json.dumps({'errors': errors}, indent=2), 400
+
+
+@app.route('/remove_elem_rss_library', methods=['POST'])
+def remove_elem_rss_library():
+    """
+    It removes the entries of the libraries feeds from the countries sent.
+    :return: list of success and errors, logging the deletion process
+    """
+    if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
+        return json.dumps({'error': 'no valid API key'}, indent=2), 401
+
+    errors = []
+    successes = []
+    deletions = request.json.get('deletions')
+    for deletions in deletions:
+        country = deletions["country"]
+        current_sent_country = country
+        try:
+            country_iso = pycountry.countries.get(name=country)
+            if not country_iso:
+                country = pycountry.countries.get(alpha_3=country)
+                if not country:
+                    errors.append({'country_name_sent': current_sent_country})
+                    continue
+            else:
+                country = country_iso
+            if country.name not in country_files:
+                errors.append({'country_name_sent': country.name})
+                continue
+        except ValueError:
+            errors.append({'country_name_sent': current_sent_country})
+            continue
+        elements = deletions["elements"]
+        for element in elements:
+            url = element['url']
+            deleted_element = None
+            xml_string = None
+            with open(file_dir_countries + country.name + ".opml", 'r') as f:
+                doc = le.parse(f)
+                for elem in doc.xpath('//*[attribute::xmlUrl]'):
+                    if elem.attrib['xmlUrl'] == url:
+                        deleted_element = elem
+                        parent = elem.getparent()
+                        parent.remove(elem)
+                        le.indent(doc)
+                        xml_string = le.tostring(doc, pretty_print=True)
+                        break
+            if deleted_element is not None:
+                with open(file_dir_countries + country.name + ".opml", "wb") as output_file:
+                    output_file.write(xml_string)
+                successes.append({"country": country.name, "title": deleted_element.attrib['title'],
+                                  "description": deleted_element.attrib['description'],
+                                  "url": deleted_element.attrib['xmlUrl']})
+            else:
+                successes.append({"country": country.name, "url": url, "status": "previously deleted"})
+    if successes:
+        return json.dumps({'errors': errors, 'successes': successes}, indent=2), 200
+    else:
+        return json.dumps({'errors': errors}, indent=2), 400
+
+
+@app.route('/get_rss_library', methods=['POST'])
+def get_rss_library():
+    """
+    Iterates over the whole library of RSS Feeds of the country sent and returns it
+    :return: list of RSS feeds as objects with the basic information
+    """
+    if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
+        return json.dumps({'error': 'no valid API key'}, indent=2), 401
+
+    country = request.json.get('country')
+
+    try:
+        country_iso = pycountry.countries.get(name=country)
+        if not country_iso:
+            country = pycountry.countries.get(alpha_3=country)
+            if not country:
+                return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
+                                  indent=2), 204
+        else:
+            country = country_iso
+    except ValueError:
+        return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
+                          indent=2), 204
+
+    if country.name in country_files:
+        try:
+            feeds = []
+            for item in opml.parse(file_dir_countries + country.name + ".opml"):
+                feeds.append({"title": item.title, "description": item.description, "url": item.xmlUrl})
+            return json.dumps(feeds, indent=2), 200
+        except XMLSyntaxError:
+            print("Error on XML file for RSS links : " + file_dir_countries + country.name + ".opml")
+    else:
+        return json.dumps({'error': "No results found on this country, please verify the code or name of it. If this"
+                                    "is expected please create the library for this country."},
+                          indent=2), 204
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
