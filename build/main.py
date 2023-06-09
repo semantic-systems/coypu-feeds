@@ -365,6 +365,9 @@ def add_elem_rss_library():
         elements = modification["elements"]
         for element in elements:
             url = element['url']
+            if not url:
+                errors.append({'country': country.name, 'error': "missing URL"})
+                continue
             title = element['title']
             description = element['description']
             xml_string = None
@@ -422,8 +425,7 @@ def remove_elem_rss_library():
             errors.append({'country_name_sent': current_sent_country})
             continue
         elements = deletions["elements"]
-        for element in elements:
-            url = element['url']
+        for url in elements:
             deleted_element = None
             xml_string = None
             with open(file_dir_countries + country.name + ".opml", 'r') as f:

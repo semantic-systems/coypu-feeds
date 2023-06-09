@@ -7,9 +7,11 @@ This is a simple API that gather news articles from several sources and returns 
 - RSS Feeds (Feed library initialized by [Awesome RSS Feeds](https://github.com/plenaryapp/awesome-rss-feeds) GitHub )
 - [The GDELT Project](https://blog.gdeltproject.org/)
 
+All the calls must always be accompanied by the parameter **key** , the value must be the correct password. **In all the calls the parameters are sent in the body in a JSON format, unless indicated otherwise.**
+
 ## Main Endpoint Call
 
-The API can be accessed through a **POST** call to the URL ```https://feeds.skynet.coypu.org```. The call must always be accompanied by the parameter **key** in its body, which value must be the correct password. The call can be made with the following filters:
+The API can be accessed through a **POST** call to the URL ```https://feeds.skynet.coypu.org```. The call can be made with the following filters:
 | Filter | Usage | Example | Defaul value |Required? |
 | ------ | ------ |  ------ |  ------ |  ------ 
 | keywords | Keywords that must appear in the news title or summary. **For multiple separate by semicolon.** | Floods in |  | ✅  
@@ -91,6 +93,85 @@ To **delete** an exception one must simply send an empty string for the exceptio
     "deleted_exception": "Guatemala"
 }
 ```
+
+### RSS Feeds Library Maintenance 
+The RSS Feeds libraries are a set of XML files with the different RSS feeds for each country. The following endpoints allow the general maintenance of them: 
+
+#### Listing
+To get all the feeds from a country one must use the endpoint ```/get_rss_library```. The call must be executed with the POST protocol indicating which country one wants to see, the parameter must be called ```country```. For example, requesting the listing of the country of Canada, can return the following:
+
+```
+[
+    {
+        "title": "CTVNews.ca - Top Stories - Public RSS",
+        "description": "Latest news from CTVNews.ca",
+        "url": "https://www.ctvnews.ca/rss/ctvnews-ca-top-stories-public-rss-1.822009"
+    },
+    {
+        "title": "National Post",
+        "description": "Canadian News, World News and Breaking Headlines",
+        "url": "https://nationalpost.com/feed/"
+    }, 
+]
+```
+### Removing, Adding and Updating
+The endpoint to remove feeds is ```/remove_elem_rss_library``` and the one for adding and updating is allocated to ```/add_elem_rss_library```. Both of the calls must be executed on **POST**. To remove it is necessary to send an array named ```deletions``` and to update it must be named ```modifications```. Each item of these arrays must have the parameter ```country``` and the array ```elements```. Multiple elements can be removed, added or updated from multiple countries.
+
+The reponse of these endpoints are two arrays, called ```errors``` and ```successes```. They explained what was succesfully processed and what not and what was the reason. If the ```successes``` array is missing it means nothing was able to be processed correctly.
+
+#### Adding and Updating
+The elements of the ```elements``` array must have these parameters:
+- **url**: Link of the RSS feed, for example: ```https://rss.dw.com/rdf/rss-en-all```
+- tittle (optional): Tittle of the entry, for easier understanding and readability.
+- description (optional): Description of the entry, for easier understanding and readability.
+
+These are the values of the entry that is to be added to the country's library. If an entry wants to be updated **it must match the url**, the other values will be overwritten. An example of the body of a call is the following:
+```
+{
+"modifications" :
+    [
+        {
+            "country" :  "United States",
+            "elements" : [
+                {
+                    "url":"https://www.cnbc.com/id/100003114/device/rss/rss.html", 
+                    "title":"US Top News and Analysisss",
+                    "description":"CNBC is the world leader in business news and real-time financial market coverage."
+                },
+                {
+                    "url":"https://feeds.a.dj.com/rss/RSSWorldNews.xml", 
+                    "title":"Deutsche Welle",
+                    "description":"Deutsche Welle"
+                }
+            ]
+        }
+    ]
+}
+```
+
+#### Removing
+The ```deletions``` array is a list of the URLs of the entries that are to be deleted from the country's library. For example this call can be made:
+```
+{
+"deletions" :
+    [
+        {
+            "country" :  "United States",
+            "elements" : [
+                "https://rss.dw.com/rdf/rss-en-all",
+                "https://feeds.a.dj.com/rss/RSSWorldNews.xml"
+            ]
+        },
+        {
+            "country" :  "Germany",
+            "elements" : [
+                "https://www.cnbc.com/id/100003114/device/rss/rss.html"
+            ]
+        }
+    ]
+}
+```
+
 ## More info on filters
 
 The filter **time_frame** can take these following values:
