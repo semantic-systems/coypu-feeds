@@ -381,13 +381,13 @@ def add_elem_rss_library():
                     if elem.attrib['xmlUrl'] == url:
                         parent.remove(elem)
                         break
-                parent.insert(len(xml_elements) + 1, le.Element("output", text="", title=title, description=description,
+                parent.insert(len(xml_elements) + 1, le.Element("outline", text="", title=title, description=description,
                                                                 xmlUrl=url, type="rss"))
                 le.indent(doc)
                 xml_string = le.tostring(doc, pretty_print=True)
             with open(file_dir_countries + country.name + ".opml", "wb") as output_file:
                 output_file.write(xml_string)
-                successes.append({'country': country.name, 'title': title, 'description': description, 'url': url})
+            successes.append({'country': country.name, 'title': title, 'description': description, 'url': url})
     if successes:
         return json.dumps({'errors': errors, 'successes': successes}, indent=2), 200
     else:
