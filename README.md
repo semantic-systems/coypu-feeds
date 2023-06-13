@@ -76,6 +76,8 @@ The **answer** would be given as a list of the exception in the body of the resp
 ```
 
 #### Adding, Updating and Deleting
+Due to the current architecture deployment, the actions taken with these endpoints are only **temporary**. For permanent action, please create an issue request.
+
 To add, update or delete exception once can use the endpoint on ```/update_country_names_exceptions```. This call must be done with the **POST** protocol with the following parameters:
 - country - Name of the country to add exception to, must be the name indicated in [ISO 3166](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes)
 - exception - Term that is recognized by GDELT (discrepancies have been found between the names they say they have and the ones they actually accept)
@@ -115,6 +117,8 @@ To get all the feeds from a country one must use the endpoint ```/get_rss_librar
 ]
 ```
 ### Removing, Adding and Updating
+Due to the current architecture deployment, the actions taken with these endpoints are only **temporary**. For permanent action, please create an issue request.
+
 The endpoint to remove feeds is ```/remove_elem_rss_library``` and the one for adding and updating is allocated to ```/add_elem_rss_library```. Both of the calls must be executed on **POST**. To remove it is necessary to send an array named ```deletions``` and to update it must be named ```modifications```. Each item of these arrays must have the parameter ```country``` and the array ```elements```. Multiple elements can be removed, added or updated from multiple countries.
 
 The reponse of these endpoints are two arrays, called ```errors``` and ```successes```. They explained what was succesfully processed and what not and what was the reason. If the ```successes``` array is missing it means nothing was able to be processed correctly.
