@@ -1,5 +1,4 @@
 import os
-
 import pytz
 from gdeltdoc import GdeltDoc, Filters
 import feedparser
@@ -13,6 +12,8 @@ import dateparser
 from flask import Flask, request
 import pycountry
 import lxml.etree as le
+import logging
+from logging.handlers import TimedRotatingFileHandler
 
 app = Flask(__name__)
 
@@ -23,6 +24,20 @@ DEFAULT_LANGUAGE = "English (United States) - en-us"
 DEFAULT_COUNTRY = "Germany"
 DELAULT_TRIME_FRAME = "1d"
 REQUEST_KEY = 'VD3WRN6RE2VM2ACJ'
+
+# Setting up the logger
+
+logger = logging.getLogger('feeds_app')
+logger.setLevel(logging.INFO)
+
+# Checking that the folder for logs exists
+if not os.path.exists('logs/'):
+    os.makedirs('logs/')
+
+handler = TimedRotatingFileHandler('logs/feeds_app', when="midnight", backupCount=30)
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+handler.suffix = "%Y-%m-%d"
+logger.addHandler(handler)
 
 
 @app.route('/', methods=['POST'])
@@ -54,6 +69,8 @@ def get_feed():
     """
     if 'key' not in request.json or request.json.get('key') != REQUEST_KEY:
         return json.dumps({'error': 'no valid API key'}, indent=2), 401
+
+    logger.info(f'This call will be executed: {request.json}')
 
     keywords = request.json.get('keywords')
     domains = request.json.get('domains')
@@ -99,12 +116,14 @@ def get_feed():
             if not country_iso:
                 country = pycountry.countries.get(alpha_3=country)
                 if not country:
+                    logger.info("No results found on this country.")
                     return json.dumps(
                         {'error': "No results found on this country, please verify the code or name of it"},
                         indent=2), 204
             else:
                 country = country_iso
         except ValueError:
+            logger.info("No results found on this country.")
             return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
                               indent=2), 204
 
@@ -138,8 +157,9 @@ def get_feed():
                     try:
                         feed = feedparser.parse(item.xmlUrl)
                     except:
-                        print("Error on request for the feed in the country file " + file_dir_countries + country.name +
-                              ".opml. The URL rasing this error is: " + item.xmlUrl)
+                        logger.info(
+                            "Error on request for the feed in the country file " + file_dir_countries + country.name +
+                            ".opml. The URL rasing this error is: " + item.xmlUrl)
                     # Checking for language constraint
                     try:
                         if language and feed.feed.language.lower() != language_rss:
@@ -214,7 +234,7 @@ def get_feed():
                         except AttributeError:
                             continue
             except XMLSyntaxError:
-                print("Error on XML file for RSS links : " + file_dir_countries + country.name + ".opml")
+                logger.info("Error on XML file for RSS links : " + file_dir_countries + country.name + ".opml")
 
         """
         Going through the Gdelt feed
@@ -258,9 +278,10 @@ def get_feed():
                                      "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), "source": SOURCES[1],
                                      "country_alpha_3": country.alpha_3, "country_name": country.name})
         except ValueError:
-            print("Invalid or Unsupported Country: '" + country.name + "'.Please check the documentation.")
+            logger.info("Invalid or Unsupported Country: '" + country.name + "'.Please check the documentation.")
 
     if not bool(article_feed):
+        logger.info("No results found on this topic or country for the keywords inserted")
         return json.dumps({'error': "No results found on this topic or country for the keywords inserted"},
                           indent=2), 204
     return json.dumps(article_feed, indent=2), 200
@@ -300,12 +321,14 @@ def update_country_names_exceptions():
         if not country_iso:
             country = pycountry.countries.get(alpha_3=country)
             if not country:
+                logger.info("No results found on this country.")
                 return json.dumps(
                     {'error': "No results found on this country, please verify the code or name of it"},
                     indent=2), 404
         else:
             country = country_iso
     except ValueError:
+        logger.info("No results found on this country.")
         return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
                           indent=2), 404
 
@@ -381,8 +404,9 @@ def add_elem_rss_library():
                     if elem.attrib['xmlUrl'] == url:
                         parent.remove(elem)
                         break
-                parent.insert(len(xml_elements) + 1, le.Element("outline", text="", title=title, description=description,
-                                                                xmlUrl=url, type="rss"))
+                parent.insert(len(xml_elements) + 1,
+                              le.Element("outline", text="", title=title, description=description,
+                                         xmlUrl=url, type="rss"))
                 le.indent(doc)
                 xml_string = le.tostring(doc, pretty_print=True)
             with open(file_dir_countries + country.name + ".opml", "wb") as output_file:
@@ -468,11 +492,13 @@ def get_rss_library():
         if not country_iso:
             country = pycountry.countries.get(alpha_3=country)
             if not country:
+                logger.info("No results found on this country.")
                 return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
                                   indent=2), 204
         else:
             country = country_iso
     except ValueError:
+        logger.info("No results found on this country.")
         return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
                           indent=2), 204
 
@@ -483,8 +509,9 @@ def get_rss_library():
                 feeds.append({"title": item.title, "description": item.description, "url": item.xmlUrl})
             return json.dumps(feeds, indent=2), 200
         except XMLSyntaxError:
-            print("Error on XML file for RSS links : " + file_dir_countries + country.name + ".opml")
+            logger.info("Error on XML file for RSS links : " + file_dir_countries + country.name + ".opml")
     else:
+        logger.info("No results found on this country.")
         return json.dumps({'error': "No results found on this country, please verify the code or name of it. If this"
                                     "is expected please create the library for this country."},
                           indent=2), 204
