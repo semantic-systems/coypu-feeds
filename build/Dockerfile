@@ -8,6 +8,7 @@ RUN \
     apt-get -y install \
         git \
         curl \
+        nano \
     && \
     apt-get -y clean
 
