@@ -40,6 +40,36 @@ handler.suffix = "%Y-%m-%d"
 logger.addHandler(handler)
 
 
+def get_country(country):
+    """
+    Attempts to identify the country sent through the ISO library. It first will attempt to simply use the name give,
+    then it will try to verify if it was sent an alpha_3 code. Next, if it's an exception, it will try with said
+    exception through alpha_2.
+    :param country: Name or alpha_3 country code
+    :return: object of the country or null object if not found
+    """
+    try:
+        country_iso = pycountry.countries.get(name=country)
+        if country_iso:
+            return country_iso
+        country_alpha_3 = pycountry.countries.get(alpha_3=country)
+        if country_alpha_3:
+            return country_alpha_3
+        json_exceptions = json.load(open("exceptions.json"))['countries_names']
+        is_exception = country in json_exceptions
+        if not is_exception:
+            logger.info("No results found on this country. Not an exception and failed by name and alpha-3.")
+            return None
+        country_alpha_2 = pycountry.countries.get(alpha_2=json_exceptions[country])
+        if not country_alpha_2:
+            logger.info("No results found on this country. It is exception but failed to find country in alpha-2.")
+            return None
+        return country_alpha_2
+    except ValueError as e:
+        logger.info(f'No results found on this country, was meet with error: {e}')
+        return None
+
+
 @app.route('/', methods=['POST'])
 def get_feed():
     """
@@ -110,22 +140,12 @@ def get_feed():
     countries = countries.split(";")
     limit_number_articles = 0
 
-    for index, country in enumerate(countries):
-        try:
-            country_iso = pycountry.countries.get(name=country)
-            if not country_iso:
-                country = pycountry.countries.get(alpha_3=country)
-                if not country:
-                    logger.info("No results found on this country.")
-                    return json.dumps(
-                        {'error': "No results found on this country, please verify the code or name of it"},
-                        indent=2), 204
-            else:
-                country = country_iso
-        except ValueError:
-            logger.info("No results found on this country.")
-            return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
-                              indent=2), 204
+    for index, country_name in enumerate(countries):
+        country = get_country(country_name)
+        if not country:
+            return json.dumps(
+                {'error': "No results found on this country, please verify the code or name of it"},
+                indent=2), 204
 
         # Checking the number of articles limit
         if number_articles > 0:
@@ -277,8 +297,8 @@ def get_feed():
                 article_feed.append({"title": row.title, "url": row.url,
                                      "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), "source": SOURCES[1],
                                      "country_alpha_3": country.alpha_3, "country_name": country.name})
-        except ValueError:
-            logger.info("Invalid or Unsupported Country: '" + country.name + "'.Please check the documentation.")
+        except ValueError as e:
+            logger.info(e)
 
     if not bool(article_feed):
         logger.info("No results found on this topic or country for the keywords inserted")
@@ -316,21 +336,11 @@ def update_country_names_exceptions():
     country = request.json.get('country')
     exception = request.json.get('exception')
 
-    try:
-        country_iso = pycountry.countries.get(name=country)
-        if not country_iso:
-            country = pycountry.countries.get(alpha_3=country)
-            if not country:
-                logger.info("No results found on this country.")
-                return json.dumps(
-                    {'error': "No results found on this country, please verify the code or name of it"},
-                    indent=2), 404
-        else:
-            country = country_iso
-    except ValueError:
-        logger.info("No results found on this country.")
-        return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
-                          indent=2), 404
+    country = get_country(country)
+    if not country:
+        return json.dumps(
+            {'error': "No results found on this country, please verify the code or name of it"},
+            indent=2), 204
 
     json_exceptions = json.load(open("exceptions.json"))['countries_names']
     is_in_exception = country.name in json_exceptions
@@ -368,23 +378,14 @@ def add_elem_rss_library():
     successes = []
     modifications = request.json.get('modifications')
     for modification in modifications:
-        country = modification["country"]
-        current_sent_country = country
-        try:
-            country_iso = pycountry.countries.get(name=country)
-            if not country_iso:
-                country = pycountry.countries.get(alpha_3=country)
-                if not country:
-                    errors.append({'country_name_sent': current_sent_country})
-                    continue
-            else:
-                country = country_iso
-            if country.name not in country_files:
-                errors.append({'country_name_sent': country.name})
-                continue
-        except ValueError:
-            errors.append({'country_name_sent': current_sent_country})
+        country = get_country(modification["country"])
+        if not country:
+            errors.append({'country_name_sent': modification["country"]})
             continue
+        if country.name not in country_files:
+            errors.append({'country_name_sent': country.name})
+            continue
+
         elements = modification["elements"]
         for element in elements:
             url = element['url']
@@ -430,25 +431,16 @@ def remove_elem_rss_library():
     errors = []
     successes = []
     deletions = request.json.get('deletions')
-    for deletions in deletions:
-        country = deletions["country"]
-        current_sent_country = country
-        try:
-            country_iso = pycountry.countries.get(name=country)
-            if not country_iso:
-                country = pycountry.countries.get(alpha_3=country)
-                if not country:
-                    errors.append({'country_name_sent': current_sent_country})
-                    continue
-            else:
-                country = country_iso
-            if country.name not in country_files:
-                errors.append({'country_name_sent': country.name})
-                continue
-        except ValueError:
-            errors.append({'country_name_sent': current_sent_country})
+    for deletion in deletions:
+        country = get_country(deletion["country"])
+        if not country:
+            errors.append({'country_name_sent': deletion["country"]})
             continue
-        elements = deletions["elements"]
+        if country.name not in country_files:
+            errors.append({'country_name_sent': country.name})
+            continue
+
+        elements = deletion["elements"]
         for url in elements:
             deleted_element = None
             xml_string = None
@@ -487,20 +479,11 @@ def get_rss_library():
 
     country = request.json.get('country')
 
-    try:
-        country_iso = pycountry.countries.get(name=country)
-        if not country_iso:
-            country = pycountry.countries.get(alpha_3=country)
-            if not country:
-                logger.info("No results found on this country.")
-                return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
-                                  indent=2), 204
-        else:
-            country = country_iso
-    except ValueError:
-        logger.info("No results found on this country.")
-        return json.dumps({'error': "No results found on this country, please verify the code or name of it"},
-                          indent=2), 204
+    country = get_country(country)
+    if not country:
+        return json.dumps(
+            {'error': "No results found on this country, please verify the code or name of it"},
+            indent=2), 204
 
     if country.name in country_files:
         try:
