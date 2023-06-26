@@ -14,7 +14,7 @@ All the calls must always be accompanied by the parameter **key**, the value mus
 The API can be accessed through a **POST** call to the URL ```https://feeds.skynet.coypu.org```. The call can be made with the following filters:
 | Filter | Usage | Example | Default value |Required? |
 | ------ | ------ |  ------ |  ------ |  ------ 
-| keywords | Keywords that must appear in the news title or summary. **For multiple separate by semicolon.** | Floods in |  | ✅  
+| keywords | Keywords that must appear in the news title or summary. Every keyword must be at least 5 characters long. **For multiple separate by semicolon.** | Floods in |  | ✅  
 | domains | General domain that news must belong to. **For multiple separate by semicolon.** | www.dw.com | None |
 | time_frame | Time constraint that limits the age of the news articles | 1h (more info ⬇️) |  1d ie. 24 hours
 | initial_date | Initial constraint that limits the publishing time of the articles.  | 2023-04-20 (more info ⬇️) |  None

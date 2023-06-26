@@ -6,7 +6,6 @@
 	</head>
 	<body>
 		<outline text="Mexico | The Guardian" title="Mexico | The Guardian" description="Latest news and features from theguardian.com, the world's leading liberal voice" xmlUrl="https://www.theguardian.com/world/mexico/rss" type="rss" />
-		<outline text="Excélsior - RSS" title="Excélsior - RSS" description="El portal de noticias líder en México con toda la información nacional y del mundo. Entérate en tiempo real de la vida pública, política, espectáculos, deportes, videos y más..." xmlUrl="https://www.excelsior.com.mx/rss.xml" type="rss" />
 		<outline text="Reforma" title="Reforma" description="Las �ltimas noticias publicadas m�s relevantes" xmlUrl="https://www.reforma.com/rss/portada.xml" type="rss" />
 		<outline text="Lo último en Vanguardia MX" title="Lo último en Vanguardia MX" description="Vanguardia" xmlUrl="https://vanguardia.com.mx/rss.xml" type="rss" />
 		<outline text="Portada, El Siglo de Torreón" title="Portada, El Siglo de Torreón" description="El Siglo de Torreón en Línea - Defensor de la Comunidad (Portada)" xmlUrl="https://www.elsiglodetorreon.com.mx/index.xml" type="rss" />
